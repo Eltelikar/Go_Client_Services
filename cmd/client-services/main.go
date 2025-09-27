@@ -1,11 +1,13 @@
 package main
 
 import (
-	"client-servicec/internal/config"
+	"client-services/internal/config"
 	"log/slog"
 	"os"
 
 	"github.com/dikkadev/prettyslog"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
 )
 
@@ -21,7 +23,7 @@ const (
 	envProd  = "prod"
 )
 
-// адреса http-запросов
+// адрес query-запроса
 const ()
 
 func main() {
@@ -43,10 +45,25 @@ func main() {
 		slog.String("some text", "test text"),
 	)
 
-	//TODO логгер
 	//TODO бд
-	//TODO сервер
+
+	router := initRouter(log)
+	_ = router
 	//TODO хендлеры
+}
+
+// TODO: вынести в отдельный пакет
+func initRouter(log *slog.Logger) *chi.Mux {
+	slog.Info("starting router")
+	router := chi.NewRouter()
+
+	// подключаем middlewares
+	router.Use(middleware.RequestID)
+	router.Use()                     // сделать логгер для роутера
+	router.Use(middleware.Recoverer) // защита от паник
+	router.Use(middleware.URLFormat)
+
+	return router
 }
 
 // TODO:вынести в отдельный пакет?

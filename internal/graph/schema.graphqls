@@ -1,0 +1,33 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+type Post {
+  id: ID!
+  title: String!
+  content: String!
+  comments: CommentConnection! #TODO добавить пагинацию
+  commentsAllowed: Boolean!
+  createdAt: Time!
+}
+
+
+type Comment {
+  id: ID!
+  parentID!
+  text: String!
+  createdAt: Time!
+}
+
+type Query {
+  #TODO запрос с пагинацией
+}
+
+input NewTodo {
+  text: String!
+  userId: String!
+}
+
+type Mutation {
+  createTodo(input: NewTodo!): Todo!
+}

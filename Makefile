@@ -1,4 +1,4 @@
-MAINFILE=./cmd/client-services/client-services.go
+MAINFILE=./cmd/client-services/main.go
 
 all:
 	go run $(MAINFILE)
