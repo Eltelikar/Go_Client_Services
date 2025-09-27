@@ -1,14 +1,10 @@
-# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-
 scalar Time
 
 type Post {
   id: ID!
   title: String!
   content: String!
-  comments(start: Int, after: String): CommentConnection! #TODO добавить пагинацию
+  comments(start: Int, after: String): CommentConnection!
   commentsAllowed: Boolean!
   createdAt: Time!
 }

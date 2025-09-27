@@ -12,7 +12,7 @@ import (
 
 type Config struct {
 	Env         string       `yaml:"env" env:"ENV" env-default:"local" env-requered:"true"`
-	Database    string       `yaml:"database" env-default:"in-memory"`
+	Storage     string       `yaml:"database" env-default:"in-memory"`
 	StorageLink *StorageLink `yaml:"storage_link"`
 	HTTPServer  *HTTPServer  `yaml:"http_server"`
 }
@@ -34,7 +34,7 @@ type HTTPServer struct {
 	Idle_timeout time.Duration `yaml:"idle_timeout" env-default:"60s"`
 }
 
-func NewConfig() *Config {
+func MustLoad() *Config {
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		slog.Error("CONFIG_PATH is not set")

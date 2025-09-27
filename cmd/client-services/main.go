@@ -2,9 +2,12 @@ package main
 
 import (
 	"client-services/internal/config"
+	"client-services/internal/graph"
+	"client-services/internal/server/middlewares/logger"
 	"log/slog"
 	"os"
 
+	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/dikkadev/prettyslog"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -24,7 +27,9 @@ const (
 )
 
 // адрес query-запроса
-const ()
+const (
+	query = "/query"
+)
 
 func main() {
 	// загружаем .env файл для параметров окружения
@@ -33,23 +38,28 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg := config.NewConfig()
+	cfg := config.MustLoad()
 	slog.Info("config file loaded successfully")
 
 	log := setupLogger(cfg.Env)
 	slog.SetDefault(log)
-
-	slog.Info("Test",
-		slog.String("some text", "test text"),
-		slog.String("some text", "test text"),
-		slog.String("some text", "test text"),
+	slog.Info("starting service",
+		slog.String("env", cfg.Env),
+		slog.String("storage-type", cfg.GetStorageLink()),
 	)
+	slog.Debug("debug messages are enabled")
+	slog.Error("error messaages are enabled")
 
 	//TODO бд
 
 	router := initRouter(log)
-	_ = router
-	//TODO хендлеры
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(
+		graph.Config{Resolvers: &graph.Resolver{
+			//TODO: Подача в структуру в resolver.go
+		}},
+	))
+
+	router.Handle(query, srv)
 }
 
 // TODO: вынести в отдельный пакет
@@ -59,14 +69,12 @@ func initRouter(log *slog.Logger) *chi.Mux {
 
 	// подключаем middlewares
 	router.Use(middleware.RequestID)
-	router.Use()                     // сделать логгер для роутера
+	router.Use(logger.New(log))
 	router.Use(middleware.Recoverer) // защита от паник
-	router.Use(middleware.URLFormat)
 
 	return router
 }
 
-// TODO:вынести в отдельный пакет?
 func setupLogger(env string) *slog.Logger {
 	var log *slog.Logger
 	switch env {
@@ -77,6 +85,8 @@ func setupLogger(env string) *slog.Logger {
 	case envDebug:
 		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	case envProd:
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	default:
 		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
 
