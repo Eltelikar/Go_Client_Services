@@ -1,0 +1,15 @@
+env: "local"         #"local","debug","prod"#
+database: "postgres" #"postgres","in-memory"#
+storage_link:
+  sql_driver: "postgres"
+  sql_user: "postgres"
+  sql_password: "postgres"
+  sql_host: "host-postgres"
+  sql_port: "5432"
+  sql_dbname: "client-services"
+  sql_sslmode: "disable"
+http_server:
+  url: "localhost"
+  port: "8080"
+  timeout: "4s"
+  idle_timeout: "60s"
