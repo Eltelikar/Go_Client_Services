@@ -2,25 +2,45 @@
 
 package model
 
+import (
+	"time"
+)
+
+type Comment struct {
+	ID        string    `json:"id"`
+	Parent    string    `json:"parent"`
+	Text      string    `json:"text"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type CommentConnection struct {
+	TotalCount *int32         `json:"totalCount,omitempty"`
+	Edges      []*CommentEdge `json:"edges,omitempty"`
+	PageInfo   *PageInfo      `json:"pageInfo"`
+}
+
+type CommentEdge struct {
+	Cursor string   `json:"cursor"`
+	Node   *Comment `json:"node"`
+}
+
 type Mutation struct {
 }
 
-type NewTodo struct {
-	Text   string `json:"text"`
-	UserID string `json:"userId"`
+type PageInfo struct {
+	StartCursor *string `json:"startCursor,omitempty"`
+	EndCursor   *string `json:"endCursor,omitempty"`
+	HasNextPage bool    `json:"hasNextPage"`
+}
+
+type Post struct {
+	ID              string             `json:"id"`
+	Title           string             `json:"title"`
+	Content         string             `json:"content"`
+	Comments        *CommentConnection `json:"comments"`
+	CommentsAllowed bool               `json:"commentsAllowed"`
+	CreatedAt       time.Time          `json:"createdAt"`
 }
 
 type Query struct {
-}
-
-type Todo struct {
-	ID   string `json:"id"`
-	Text string `json:"text"`
-	Done bool   `json:"done"`
-	User *User  `json:"user"`
-}
-
-type User struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
 }

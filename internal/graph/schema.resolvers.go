@@ -10,14 +10,24 @@ import (
 	"fmt"
 )
 
-// CreateTodo is the resolver for the createTodo field.
-func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: CreateTodo - createTodo"))
+// CreatePost is the resolver for the createPost field.
+func (r *mutationResolver) CreatePost(ctx context.Context, title string, content string, commentsAllowed bool) (*model.Post, error) {
+	panic(fmt.Errorf("not implemented: CreatePost - createPost"))
 }
 
-// Todos is the resolver for the todos field.
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: Todos - todos"))
+// CreateComment is the resolver for the createComment field.
+func (r *mutationResolver) CreateComment(ctx context.Context, parentID string, text string) (*model.Comment, error) {
+	panic(fmt.Errorf("not implemented: CreateComment - createComment"))
+}
+
+// Posts is the resolver for the posts field.
+func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
+	panic(fmt.Errorf("not implemented: Posts - posts"))
+}
+
+// Post is the resolver for the post field.
+func (r *queryResolver) Post(ctx context.Context, id string, first *int32, after *string) (*model.Post, error) {
+	panic(fmt.Errorf("not implemented: Post - post"))
 }
 
 // Mutation returns MutationResolver implementation.

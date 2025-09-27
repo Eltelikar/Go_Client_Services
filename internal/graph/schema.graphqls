@@ -2,32 +2,47 @@
 #
 # https://gqlgen.com/getting-started/
 
+scalar Time
+
 type Post {
   id: ID!
   title: String!
   content: String!
-  comments: CommentConnection! #TODO добавить пагинацию
+  comments(start: Int, after: String): CommentConnection! #TODO добавить пагинацию
   commentsAllowed: Boolean!
   createdAt: Time!
 }
 
-
 type Comment {
   id: ID!
-  parentID!
+  parent: ID!
   text: String!
   createdAt: Time!
 }
 
-type Query {
-  #TODO запрос с пагинацией
+type CommentConnection {
+  totalCount: Int
+  edges: [CommentEdge!]
+  pageInfo: PageInfo!
 }
 
-input NewTodo {
-  text: String!
-  userId: String!
+type CommentEdge {
+  cursor: ID!
+  node: Comment!
+}
+
+type PageInfo {
+  startCursor: ID
+  endCursor: ID
+  hasNextPage: Boolean!
+}
+
+type Query {
+  posts: [Post!]!
+  post(id: ID!, first: Int, after: String): Post
 }
 
 type Mutation {
-  createTodo(input: NewTodo!): Todo!
+  createPost(title: String!, content: String!, commentsAllowed: Boolean!): Post!
+  createComment(parentID: ID!, text: String!): Comment!
 }
