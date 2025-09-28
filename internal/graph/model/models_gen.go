@@ -8,7 +8,8 @@ import (
 
 type Comment struct {
 	ID        string    `json:"id"`
-	Parent    string    `json:"parent"`
+	PostID    string    `json:"postID"`
+	ParentID  *string   `json:"parentID,omitempty"`
 	Content   string    `json:"content"`
 	CreatedAt time.Time `json:"createdAt"`
 }

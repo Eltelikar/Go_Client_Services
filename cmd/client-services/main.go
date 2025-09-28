@@ -80,9 +80,9 @@ func initResolver(cfg *config.Config) (*graph.Resolver, error) {
 	case "in-memory":
 		storage := in_memory.NewStorage()
 		resolver = &graph.Resolver{
-			Storage:  storage,
-			Post_:    storage.NewPostStorage(),
-			Comment_: storage.NewCommentStorage(),
+			Storage: storage,
+			Post_:   storage.NewPostStorage(),
+			//Comment_: storage.NewCommentStorage(),
 		}
 	case "postgres":
 		storage, err := postgres.NewStorage(*cfg.StorageConnect)

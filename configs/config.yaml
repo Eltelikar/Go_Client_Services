@@ -6,7 +6,7 @@ storage_connect:
   sql_password: "postgres"
   sql_address: "localhost"
   sql_port: "5432"
-  sql_dbname: "post-service"
+  sql_dbname: "client-service"
   sql_sslmode: "disable"
 http_server:
   url: "localhost"

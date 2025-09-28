@@ -2,7 +2,7 @@ package in_memory
 
 import (
 	"client-services/internal/graph/model"
-	"fmt"
+	"context"
 	"sync"
 	"time"
 
@@ -35,7 +35,7 @@ func (cs *CommentStorage) SaveComment(c *model.Comment) string {
 
 	comment := &model.Comment{
 		ID:        uuid.New().String(),
-		Parent:    c.Parent,
+		ParentID:  c.ParentID,
 		Content:   c.Content,
 		CreatedAt: time.Now(),
 	}
@@ -45,16 +45,26 @@ func (cs *CommentStorage) SaveComment(c *model.Comment) string {
 	return comment.ID
 }
 
-func (cs *CommentStorage) GetComment(id string) (*model.Comment, error) {
+func (cs *CommentStorage) GetComments(ctx context.Context, first *int32, after *string, postID string) (*[]model.Comment, error) {
 	const op = "storage.in-memory.GetComment"
 
 	cs.mu.RLock()
 	defer cs.mu.RUnlock()
 
-	comment, ok := cs.comments[id]
-	if !ok {
-		return nil, fmt.Errorf("%s: comment not found by id: %s", op, id)
+	var comments []model.Comment
+
+	if *first == 0 {
+		return &comments, nil
 	}
+
+	for _, c := range cs.comments {
+		if c.PostID == postID {
+			comments = append(comments, *c)
+		}
+	}
+
+	//TODO: отсортировать по датам, но: (Комментарий - дочерние комментарии)
+	//TODO: учесть пагинацию комментариев.
 
 	return comment, nil
 }

@@ -30,5 +30,5 @@ type PostInterface interface {
 // TODO: Сохранить комментарий, получить комментарии
 type CommentInterface interface {
 	SaveComment(c *model.Comment) string
-	GetComment(id string) (*model.Comment, error)
+	GetComments(id string) (*[]model.Comment, error)
 }

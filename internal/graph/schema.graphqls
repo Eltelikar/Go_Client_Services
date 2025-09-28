@@ -11,7 +11,8 @@ type Post {
 
 type Comment {
   id: ID!
-  parent: ID!
+  postID: ID!
+  parentID: ID
   content: String!
   createdAt: Time!
 }

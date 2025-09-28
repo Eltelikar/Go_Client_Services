@@ -21,7 +21,7 @@ type StorageConnect struct {
 	SQLPassword string `yaml:"sql_password" env-default:"postgres"`
 	SQLAddress  string `yaml:"sql_address" env-default:"localhost"`
 	SQLPort     string `yaml:"sql_port" env-default:"5432"`
-	SQLDBName   string `yaml:"sql_dbname" env-default:"post-service"`
+	SQLDBName   string `yaml:"sql_dbname" env-default:"client-service"`
 	SQLSSLMode  string `yaml:"sql_sslmode" env-default:"disable"`
 }
 
@@ -59,29 +59,3 @@ func MustLoad() *Config {
 
 	return &cfg
 }
-
-// func (cfg *Config) GetStorageLink() string {
-// 	storageLink := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=%s",
-// 		cfg.StorageConnect.SQLDriver,
-// 		cfg.StorageConnect.SQLUser,
-// 		cfg.StorageConnect.SQLPassword,
-// 		cfg.StorageConnect.SQLHost,
-// 		cfg.StorageConnect.SQLPort,
-// 		cfg.StorageConnect.SQLDBName,
-// 		cfg.StorageConnect.SQLSSLMode,
-// 	)
-
-// 	if storageLink == "" {
-// 		log.Fatalf("storage link is empty")
-// 	}
-
-// 	slog.Debug("Storage link set in config",
-// 		slog.String("SQLDriver", cfg.StorageConnect.SQLDriver),
-// 		slog.String("SQLUser", cfg.StorageConnect.SQLUser),
-// 		slog.String("SQLHost", cfg.StorageConnect.SQLHost),
-// 		slog.String("SQLPort", cfg.StorageConnect.SQLPort),
-// 		slog.String("SQLDBName", cfg.StorageConnect.SQLDBName),
-// 		slog.String("SQLSSLMode", cfg.StorageConnect.SQLSSLMode),
-// 	)
-// 	return storageLink
-// }
