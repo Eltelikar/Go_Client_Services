@@ -4,6 +4,7 @@ import (
 	"client-services/internal/config"
 	"client-services/internal/graph"
 	"client-services/internal/server/middlewares/logger"
+	"client-services/internal/services"
 	in_memory "client-services/internal/storage/in-memory"
 	"client-services/internal/storage/postgres"
 	"fmt"
@@ -89,11 +90,11 @@ func initResolver(cfg *config.Config) (*graph.Resolver, error) {
 			return nil, fmt.Errorf("failed to initialize postgres database")
 		}
 
-		//TODO: создание сервиса Post
 		//TODO: создание сервиса Comment
 
 		resolver = &graph.Resolver{
 			Storage: storage,
+			Post_:   services.NewPostService(&storage.DB),
 		}
 	default:
 		return nil, fmt.Errorf("unknown storage type")

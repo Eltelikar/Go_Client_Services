@@ -2,6 +2,7 @@ package in_memory
 
 import (
 	"client-services/internal/graph/model"
+	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -27,7 +28,7 @@ func (s *InMemStorage) NewPostStorage() *PostStorage {
 	return ps
 }
 
-func (ps *PostStorage) SavePost(p *model.Post) string {
+func (ps *PostStorage) SavePost(ctx context.Context, p *model.Post) (string, error) {
 	const op = "storage.in-memory.SavePost"
 	_ = op
 
@@ -45,10 +46,10 @@ func (ps *PostStorage) SavePost(p *model.Post) string {
 
 	ps.posts[post.ID] = post
 
-	return post.ID
+	return post.ID, nil
 }
 
-func (ps *PostStorage) GetPost(id string) (*model.Post, error) {
+func (ps *PostStorage) GetPost(ctx context.Context, id string) (*model.Post, error) {
 	const op = "storage.in-memory.GetPost"
 
 	ps.mu.RLock()
@@ -63,7 +64,7 @@ func (ps *PostStorage) GetPost(id string) (*model.Post, error) {
 	return post, nil
 }
 
-func (ps *PostStorage) GetAllPosts() ([]model.Post, error) {
+func (ps *PostStorage) GetAllPosts(ctx context.Context) ([]model.Post, error) {
 	const op = "storage.in-memory.GetAllPosts"
 	_ = op
 

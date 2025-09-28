@@ -2,6 +2,7 @@ package graph
 
 import (
 	"client-services/internal/graph/model"
+	"context"
 )
 
 // This file will not be regenerated automatically.
@@ -21,9 +22,9 @@ type StorageInterface interface {
 
 // TODO: Сохранить пост. Получить все посты. Получить один пост.
 type PostInterface interface {
-	SavePost(p *model.Post) string
-	GetPost(id string) (*model.Post, error)
-	GetAllPosts() ([]model.Post, error)
+	SavePost(ctx context.Context, p *model.Post) (string, error)
+	GetPost(ctx context.Context, id string) (*model.Post, error)
+	GetAllPosts(ctx context.Context) ([]model.Post, error)
 }
 
 // TODO: Сохранить комментарий, получить комментарии
