@@ -2,7 +2,6 @@ package graph
 
 import (
 	"client-services/internal/graph/model"
-	im "client-services/internal/storage/in-memory"
 )
 
 // This file will not be regenerated automatically.
@@ -11,9 +10,13 @@ import (
 
 // TODO: конкуретная работа с бд
 type Resolver struct {
-	Storage  *im.InMemStorage
+	Storage  StorageInterface
 	Post_    PostInterface
 	Comment_ CommentInterface
+}
+
+type StorageInterface interface {
+	CloseDB() error
 }
 
 // TODO: Сохранить пост. Получить все посты. Получить один пост.

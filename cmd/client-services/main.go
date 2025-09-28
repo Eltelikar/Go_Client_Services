@@ -5,6 +5,8 @@ import (
 	"client-services/internal/graph"
 	"client-services/internal/server/middlewares/logger"
 	in_memory "client-services/internal/storage/in-memory"
+	"client-services/internal/storage/postgres"
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -47,30 +49,17 @@ func main() {
 
 	slog.Info("starting service",
 		slog.String("env", cfg.Env),
-		slog.String("storage-type", cfg.GetStorageLink()),
+		slog.String("storage-type", cfg.Storage),
 	)
 	slog.Debug("debug messages are enabled")
 	slog.Error("error messaages are enabled")
 
-	var resolver *graph.Resolver
-	switch cfg.Storage {
-	case "in-memory":
-		storage := in_memory.NewStorage()
-		resolver = &graph.Resolver{
-			Storage:  storage,
-			Post_:    storage.NewPostStorage(),
-			Comment_: storage.NewCommentStorage(),
-		}
-	case "postgres":
-		//TODO: соединение с бд
-		//TODO: создание сервиса Post
-		//TODO: создание сервиса Comment
-
-		resolver = &graph.Resolver{
-			//TODO: передача хранилища и сервисов
-		}
-	default:
-		slog.Error("unknown storage type", slog.String("storage", cfg.Storage))
+	resolver, err := initResolver(cfg)
+	if err != nil {
+		slog.Error("failed to init resolver",
+			slog.String("storage", cfg.Storage),
+			slog.String("error", err.Error()),
+		)
 		os.Exit(1)
 	}
 
@@ -80,6 +69,37 @@ func main() {
 	}))
 
 	router.Handle(query, srv)
+}
+
+// TODO: вынести в отдельный пакет
+func initResolver(cfg *config.Config) (*graph.Resolver, error) {
+	var resolver *graph.Resolver
+
+	switch cfg.Storage {
+	case "in-memory":
+		storage := in_memory.NewStorage()
+		resolver = &graph.Resolver{
+			Storage:  storage,
+			Post_:    storage.NewPostStorage(),
+			Comment_: storage.NewCommentStorage(),
+		}
+	case "postgres":
+		storage, err := postgres.NewStorage(*cfg.StorageConnect)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize postgres database")
+		}
+
+		//TODO: создание сервиса Post
+		//TODO: создание сервиса Comment
+
+		resolver = &graph.Resolver{
+			Storage: storage,
+		}
+	default:
+		return nil, fmt.Errorf("unknown storage type")
+	}
+
+	return resolver, nil
 }
 
 // TODO: вынести в отдельный пакет

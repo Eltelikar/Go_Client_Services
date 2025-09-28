@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"time"
@@ -11,19 +9,19 @@ import (
 )
 
 type Config struct {
-	Env         string       `yaml:"env" env:"ENV" env-default:"local" env-requered:"true"`
-	Storage     string       `yaml:"database" env-default:"in-memory"`
-	StorageLink *StorageLink `yaml:"storage_link"`
-	HTTPServer  *HTTPServer  `yaml:"http_server"`
+	Env            string          `yaml:"env" env:"ENV" env-default:"local" env-requered:"true"`
+	Storage        string          `yaml:"storage" env-default:"in-memory"`
+	StorageConnect *StorageConnect `yaml:"storage_connect"`
+	HTTPServer     *HTTPServer     `yaml:"http_server"`
 }
 
-type StorageLink struct {
+type StorageConnect struct {
 	SQLDriver   string `yaml:"sql_driver" env-default:"postgres"`
 	SQLUser     string `yaml:"sql_user" env-default:"postgres"`
 	SQLPassword string `yaml:"sql_password" env-default:"postgres"`
-	SQLHost     string `yaml:"sql_host" env-default:"0.0.0.0"`
-	SQLPort     string `yaml:"sql_port" env-default:"8080"`
-	SQLDBName   string `yaml:"sql_dbname" env-default:"wallet_app"`
+	SQLAddress  string `yaml:"sql_address" env-default:"localhost"`
+	SQLPort     string `yaml:"sql_port" env-default:"5432"`
+	SQLDBName   string `yaml:"sql_dbname" env-default:"post-service"`
 	SQLSSLMode  string `yaml:"sql_sslmode" env-default:"disable"`
 }
 
@@ -62,28 +60,28 @@ func MustLoad() *Config {
 	return &cfg
 }
 
-func (cfg *Config) GetStorageLink() string {
-	storageLink := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=%s",
-		cfg.StorageLink.SQLDriver,
-		cfg.StorageLink.SQLUser,
-		cfg.StorageLink.SQLPassword,
-		cfg.StorageLink.SQLHost,
-		cfg.StorageLink.SQLPort,
-		cfg.StorageLink.SQLDBName,
-		cfg.StorageLink.SQLSSLMode,
-	)
+// func (cfg *Config) GetStorageLink() string {
+// 	storageLink := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=%s",
+// 		cfg.StorageConnect.SQLDriver,
+// 		cfg.StorageConnect.SQLUser,
+// 		cfg.StorageConnect.SQLPassword,
+// 		cfg.StorageConnect.SQLHost,
+// 		cfg.StorageConnect.SQLPort,
+// 		cfg.StorageConnect.SQLDBName,
+// 		cfg.StorageConnect.SQLSSLMode,
+// 	)
 
-	if storageLink == "" {
-		log.Fatalf("storage link is empty")
-	}
+// 	if storageLink == "" {
+// 		log.Fatalf("storage link is empty")
+// 	}
 
-	slog.Debug("Storage link set in config",
-		slog.String("SQLDriver", cfg.StorageLink.SQLDriver),
-		slog.String("SQLUser", cfg.StorageLink.SQLUser),
-		slog.String("SQLHost", cfg.StorageLink.SQLHost),
-		slog.String("SQLPort", cfg.StorageLink.SQLPort),
-		slog.String("SQLDBName", cfg.StorageLink.SQLDBName),
-		slog.String("SQLSSLMode", cfg.StorageLink.SQLSSLMode),
-	)
-	return storageLink
-}
+// 	slog.Debug("Storage link set in config",
+// 		slog.String("SQLDriver", cfg.StorageConnect.SQLDriver),
+// 		slog.String("SQLUser", cfg.StorageConnect.SQLUser),
+// 		slog.String("SQLHost", cfg.StorageConnect.SQLHost),
+// 		slog.String("SQLPort", cfg.StorageConnect.SQLPort),
+// 		slog.String("SQLDBName", cfg.StorageConnect.SQLDBName),
+// 		slog.String("SQLSSLMode", cfg.StorageConnect.SQLSSLMode),
+// 	)
+// 	return storageLink
+// }

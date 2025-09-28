@@ -23,3 +23,8 @@ func NewStorage() *InMemStorage {
 
 	return s
 }
+
+// метод-пустышка для совместимости интерфейсов
+func (s *InMemStorage) CloseDB() error {
+	return nil
+}
