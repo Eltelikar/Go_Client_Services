@@ -9,7 +9,7 @@ import (
 type Comment struct {
 	ID        string    `json:"id"`
 	Parent    string    `json:"parent"`
-	Text      string    `json:"text"`
+	Content   string    `json:"content"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
@@ -28,9 +28,10 @@ type Mutation struct {
 }
 
 type PageInfo struct {
-	StartCursor *string `json:"startCursor,omitempty"`
-	EndCursor   *string `json:"endCursor,omitempty"`
-	HasNextPage bool    `json:"hasNextPage"`
+	StartCursor     *string `json:"startCursor,omitempty"`
+	EndCursor       *string `json:"endCursor,omitempty"`
+	HasNextPage     bool    `json:"hasNextPage"`
+	HasPerviousPage *bool   `json:"hasPerviousPage,omitempty"`
 }
 
 type Post struct {

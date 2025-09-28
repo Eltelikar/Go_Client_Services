@@ -12,7 +12,7 @@ type Post {
 type Comment {
   id: ID!
   parent: ID!
-  text: String!
+  content: String!
   createdAt: Time!
 }
 
@@ -31,6 +31,7 @@ type PageInfo {
   startCursor: ID
   endCursor: ID
   hasNextPage: Boolean!
+  hasPerviousPage: Boolean
 }
 
 type Query {

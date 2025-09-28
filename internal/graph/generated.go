@@ -49,10 +49,10 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Comment struct {
+		Content   func(childComplexity int) int
 		CreatedAt func(childComplexity int) int
 		ID        func(childComplexity int) int
 		Parent    func(childComplexity int) int
-		Text      func(childComplexity int) int
 	}
 
 	CommentConnection struct {
@@ -72,9 +72,10 @@ type ComplexityRoot struct {
 	}
 
 	PageInfo struct {
-		EndCursor   func(childComplexity int) int
-		HasNextPage func(childComplexity int) int
-		StartCursor func(childComplexity int) int
+		EndCursor       func(childComplexity int) int
+		HasNextPage     func(childComplexity int) int
+		HasPerviousPage func(childComplexity int) int
+		StartCursor     func(childComplexity int) int
 	}
 
 	Post struct {
@@ -120,6 +121,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	_ = ec
 	switch typeName + "." + field {
 
+	case "Comment.content":
+		if e.complexity.Comment.Content == nil {
+			break
+		}
+
+		return e.complexity.Comment.Content(childComplexity), true
 	case "Comment.createdAt":
 		if e.complexity.Comment.CreatedAt == nil {
 			break
@@ -138,12 +145,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Comment.Parent(childComplexity), true
-	case "Comment.text":
-		if e.complexity.Comment.Text == nil {
-			break
-		}
-
-		return e.complexity.Comment.Text(childComplexity), true
 
 	case "CommentConnection.edges":
 		if e.complexity.CommentConnection.Edges == nil {
@@ -212,6 +213,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PageInfo.HasNextPage(childComplexity), true
+	case "PageInfo.hasPerviousPage":
+		if e.complexity.PageInfo.HasPerviousPage == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.HasPerviousPage(childComplexity), true
 	case "PageInfo.startCursor":
 		if e.complexity.PageInfo.StartCursor == nil {
 			break
@@ -597,14 +604,14 @@ func (ec *executionContext) fieldContext_Comment_parent(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Comment_text(ctx context.Context, field graphql.CollectedField, obj *model.Comment) (ret graphql.Marshaler) {
+func (ec *executionContext) _Comment_content(ctx context.Context, field graphql.CollectedField, obj *model.Comment) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Comment_text,
+		ec.fieldContext_Comment_content,
 		func(ctx context.Context) (any, error) {
-			return obj.Text, nil
+			return obj.Content, nil
 		},
 		nil,
 		ec.marshalNString2string,
@@ -613,7 +620,7 @@ func (ec *executionContext) _Comment_text(ctx context.Context, field graphql.Col
 	)
 }
 
-func (ec *executionContext) fieldContext_Comment_text(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Comment_content(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Comment",
 		Field:      field,
@@ -749,6 +756,8 @@ func (ec *executionContext) fieldContext_CommentConnection_pageInfo(_ context.Co
 				return ec.fieldContext_PageInfo_endCursor(ctx, field)
 			case "hasNextPage":
 				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+			case "hasPerviousPage":
+				return ec.fieldContext_PageInfo_hasPerviousPage(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
 		},
@@ -813,8 +822,8 @@ func (ec *executionContext) fieldContext_CommentEdge_node(_ context.Context, fie
 				return ec.fieldContext_Comment_id(ctx, field)
 			case "parent":
 				return ec.fieldContext_Comment_parent(ctx, field)
-			case "text":
-				return ec.fieldContext_Comment_text(ctx, field)
+			case "content":
+				return ec.fieldContext_Comment_content(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Comment_createdAt(ctx, field)
 			}
@@ -908,8 +917,8 @@ func (ec *executionContext) fieldContext_Mutation_createComment(ctx context.Cont
 				return ec.fieldContext_Comment_id(ctx, field)
 			case "parent":
 				return ec.fieldContext_Comment_parent(ctx, field)
-			case "text":
-				return ec.fieldContext_Comment_text(ctx, field)
+			case "content":
+				return ec.fieldContext_Comment_content(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Comment_createdAt(ctx, field)
 			}
@@ -1005,6 +1014,35 @@ func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field gra
 }
 
 func (ec *executionContext) fieldContext_PageInfo_hasNextPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PageInfo_hasPerviousPage(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PageInfo_hasPerviousPage,
+		func(ctx context.Context) (any, error) {
+			return obj.HasPerviousPage, nil
+		},
+		nil,
+		ec.marshalOBoolean2ᚖbool,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_hasPerviousPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "PageInfo",
 		Field:      field,
@@ -2891,8 +2929,8 @@ func (ec *executionContext) _Comment(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "text":
-			out.Values[i] = ec._Comment_text(ctx, field, obj)
+		case "content":
+			out.Values[i] = ec._Comment_content(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3087,6 +3125,8 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "hasPerviousPage":
+			out.Values[i] = ec._PageInfo_hasPerviousPage(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
