@@ -4,6 +4,7 @@ import (
 	"client-services/internal/config"
 	"client-services/internal/graph"
 	"client-services/internal/server/middlewares/logger"
+	in_memory "client-services/internal/storage/in-memory"
 	"log/slog"
 	"os"
 
@@ -43,6 +44,7 @@ func main() {
 
 	log := setupLogger(cfg.Env)
 	slog.SetDefault(log)
+
 	slog.Info("starting service",
 		slog.String("env", cfg.Env),
 		slog.String("storage-type", cfg.GetStorageLink()),
@@ -50,14 +52,32 @@ func main() {
 	slog.Debug("debug messages are enabled")
 	slog.Error("error messaages are enabled")
 
-	//TODO бд
+	var resolver *graph.Resolver
+	switch cfg.Storage {
+	case "in-memory":
+		storage := in_memory.NewStorage()
+		resolver = &graph.Resolver{
+			Storage:  storage,
+			Post_:    storage.NewPostStorage(),
+			Comment_: storage.NewCommentStorage(),
+		}
+	case "postgres":
+		//TODO: соединение с бд
+		//TODO: создание сервиса Post
+		//TODO: создание сервиса Comment
+
+		resolver = &graph.Resolver{
+			//TODO: передача хранилища и сервисов
+		}
+	default:
+		slog.Error("unknown storage type", slog.String("storage", cfg.Storage))
+		os.Exit(1)
+	}
 
 	router := initRouter(log)
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(
-		graph.Config{Resolvers: &graph.Resolver{
-			//TODO: Подача в структуру в resolver.go
-		}},
-	))
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
+		Resolvers: resolver,
+	}))
 
 	router.Handle(query, srv)
 }

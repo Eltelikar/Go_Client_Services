@@ -1,6 +1,9 @@
 package graph
 
-import "client-services/internal/graph/model"
+import (
+	"client-services/internal/graph/model"
+	im "client-services/internal/storage/in-memory"
+)
 
 // This file will not be regenerated automatically.
 //
@@ -8,8 +11,9 @@ import "client-services/internal/graph/model"
 
 // TODO: конкуретная работа с бд
 type Resolver struct {
-	Post    PostInterface
-	Comment CommentInterface
+	Storage  *im.InMemStorage
+	Post_    PostInterface
+	Comment_ CommentInterface
 }
 
 // TODO: Сохранить пост. Получить все посты. Получить один пост.
