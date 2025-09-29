@@ -29,18 +29,16 @@ type CommentEdge {
 }
 
 type PageInfo {
-  startCursor: ID
   endCursor: ID
   hasNextPage: Boolean!
-  hasPerviousPage: Boolean
 }
 
 type Query {
-  posts: [Post!]!
-  post(id: ID!, first: Int, after: String): Post
+  getAllPosts: [Post!]!
+  getPost(id: ID!, first: Int, after: String): Post
 }
 
 type Mutation {
   createPost(title: String!, content: String!, commentsAllowed: Boolean!): Post!
-  createComment(parentID: ID!, text: String!): Comment!
+  createComment(parentID: ID, postID: ID! ,content: String!): Comment!
 }

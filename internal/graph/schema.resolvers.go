@@ -8,26 +8,103 @@ import (
 	"client-services/internal/graph/model"
 	"context"
 	"fmt"
+	"log/slog"
+	"strings"
 )
 
 // CreatePost is the resolver for the createPost field.
 func (r *mutationResolver) CreatePost(ctx context.Context, title string, content string, commentsAllowed bool) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented: CreatePost - createPost"))
+	const op = "graph.schema.resolvers.CreatePost"
+
+	post := &model.Post{
+		Title:           title,
+		Content:         content,
+		CommentsAllowed: commentsAllowed,
+	}
+
+	id, time, err := r.Post_.SavePost(ctx, post)
+	if err != nil {
+		r.Log.Error("failed to save post",
+			slog.String("op", op),
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("%s: failed to save post: %w", op, err)
+	}
+
+	post.ID = id
+	post.CreatedAt = time
+
+	return post, nil
 }
 
 // CreateComment is the resolver for the createComment field.
-func (r *mutationResolver) CreateComment(ctx context.Context, parentID string, text string) (*model.Comment, error) {
-	panic(fmt.Errorf("not implemented: CreateComment - createComment"))
+func (r *mutationResolver) CreateComment(ctx context.Context, parentID *string, postID string, content string) (*model.Comment, error) {
+	const op = "graph.schema.resolvers.CreateComment"
+	if len(content) > 2000 {
+		r.Log.Error("text must contains 2000 symb or less",
+			slog.String("op", op))
+	}
+
+	post, err := r.Post_.GetPost(ctx, postID)
+	if err != nil {
+		if strings.Contains(err.Error(), "post not found") {
+			r.Log.Info("user trying to create comment to not existing post",
+				slog.String("op", op),
+				slog.String("error", err.Error()))
+			return nil, fmt.Errorf("%s: trying to create comment to not existing post: %w", op, err)
+		}
+		r.Log.Error("failed to get post for comment",
+			slog.String("op", op),
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("%s: failet to get post for comment: %w", op, err)
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if !post.CommentsAllowed {
+		r.Log.Info("user trying to create comment to post that not allowed comments",
+			slog.String("op", op))
+		return nil, fmt.Errorf("%s: this post not allow comments", op)
+	}
+
+	insertParent := false
+	if parentID != nil {
+		//TODO: найти parrent-comment
+		insertParent = true
+	}
+
+	comment := &model.Comment{
+		PostID:  postID,
+		Content: content,
+	}
+	if insertParent {
+		comment.ParentID = parentID
+	}
+
+	id, time, err := r.Comment_.SaveComment(ctx, comment)
+	if err != nil {
+		r.Log.Error("failed to save comment",
+			slog.String("op", op),
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("%s: failed to save comment: %w", op, err)
+	}
+
+	comment.ID = id
+	comment.CreatedAt = time
+
+	return comment, nil
 }
 
-// Posts is the resolver for the posts field.
-func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
-	panic(fmt.Errorf("not implemented: Posts - posts"))
+// GetAllPosts is the resolver for the getAllPosts field.
+func (r *queryResolver) GetAllPosts(ctx context.Context) ([]*model.Post, error) {
+	panic(fmt.Errorf("not implemented: GetAllPosts - getAllPosts"))
 }
 
-// Post is the resolver for the post field.
-func (r *queryResolver) Post(ctx context.Context, id string, first *int32, after *string) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented: Post - post"))
+// GetPost is the resolver for the getPost field.
+func (r *queryResolver) GetPost(ctx context.Context, id string, first *int32, after *string) (*model.Post, error) {
+	panic(fmt.Errorf("not implemented: GetPost - getPost"))
 }
 
 // Mutation returns MutationResolver implementation.

@@ -29,10 +29,8 @@ type Mutation struct {
 }
 
 type PageInfo struct {
-	StartCursor     *string `json:"startCursor,omitempty"`
-	EndCursor       *string `json:"endCursor,omitempty"`
-	HasNextPage     bool    `json:"hasNextPage"`
-	HasPerviousPage *bool   `json:"hasPerviousPage,omitempty"`
+	EndCursor   *string `json:"endCursor,omitempty"`
+	HasNextPage bool    `json:"hasNextPage"`
 }
 
 type Post struct {

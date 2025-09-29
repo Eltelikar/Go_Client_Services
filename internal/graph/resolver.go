@@ -3,32 +3,36 @@ package graph
 import (
 	"client-services/internal/graph/model"
 	"context"
+	"log/slog"
+	"sync"
+	"time"
 )
 
 // This file will not be regenerated automatically.
 //
 // It serves as dependency injection for your app, add any dependencies you require here.
 
-// TODO: конкуретная работа с бд
 type Resolver struct {
+	Log      *slog.Logger
 	Storage  StorageInterface
 	Post_    PostInterface
 	Comment_ CommentInterface
+
+	mu *sync.Mutex
 }
 
 type StorageInterface interface {
 	CloseDB() error
 }
 
-// TODO: Сохранить пост. Получить все посты. Получить один пост.
 type PostInterface interface {
-	SavePost(ctx context.Context, p *model.Post) (string, error)
+	SavePost(ctx context.Context, p *model.Post) (string, time.Time, error)
 	GetPost(ctx context.Context, id string) (*model.Post, error)
 	GetAllPosts(ctx context.Context) ([]model.Post, error)
 }
 
-// TODO: Сохранить комментарий, получить комментарии
 type CommentInterface interface {
-	SaveComment(ctx context.Context, c *model.Comment) (string, error)
+	SaveComment(ctx context.Context, c *model.Comment) (string, time.Time, error)
 	GetComments(ctx context.Context, first *int32, after *string, postID string) (*[]model.Comment, bool, string, error)
+	IsCommentExist(ctx context.Context, commentID string, postID string) error
 }

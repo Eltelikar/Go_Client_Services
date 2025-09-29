@@ -15,11 +15,13 @@ type PostService struct {
 	db *pg.DB
 }
 
+var ErrPostNotFound = errors.New("post not found")
+
 func NewPostService(db *pg.DB) *PostService {
 	return &PostService{db: db}
 }
 
-func (ps *PostService) SavePost(ctx context.Context, p *model.Post) (string, error) {
+func (ps *PostService) SavePost(ctx context.Context, p *model.Post) (string, time.Time, error) {
 	const op = "services.posts.SavePost"
 
 	post := &model.Post{
@@ -42,10 +44,10 @@ func (ps *PostService) SavePost(ctx context.Context, p *model.Post) (string, err
 	err := retryFunc(ctx, ps.db, opr)
 
 	if err != nil {
-		return "", err
+		return "", time.Time{}, err
 	}
 
-	return post.ID, nil
+	return post.ID, post.CreatedAt, nil
 
 }
 
@@ -59,7 +61,7 @@ func (ps *PostService) GetPost(ctx context.Context, id string) (*model.Post, err
 			Select()
 		if err != nil {
 			if errors.Is(err, pg.ErrNoRows) {
-				return fmt.Errorf("%s: %w", op, errors.New("post not found"))
+				return fmt.Errorf("%s: %w", op, ErrPostNotFound)
 			}
 			return fmt.Errorf("%s: %w", op, err)
 		}
@@ -83,7 +85,7 @@ func (ps *PostService) GetAllPosts(ctx context.Context) ([]model.Post, error) {
 		err := tx.Model(&posts).Select()
 		if err != nil {
 			if errors.Is(err, pg.ErrNoRows) {
-				return fmt.Errorf("%s: %w", op, errors.New("posts not found"))
+				return fmt.Errorf("%s: %w", op, ErrPostNotFound)
 			}
 			return fmt.Errorf("%s: %w", op, err)
 		}

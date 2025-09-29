@@ -28,7 +28,7 @@ func (s *InMemStorage) NewCommentStorage() *CommentStorage {
 	return cs
 }
 
-func (cs *CommentStorage) SaveComment(ctx context.Context, c *model.Comment) (string, error) {
+func (cs *CommentStorage) SaveComment(ctx context.Context, c *model.Comment) (string, time.Time, error) {
 	const op = "storage.in-memory.SaveComment"
 	_ = op
 
@@ -44,7 +44,7 @@ func (cs *CommentStorage) SaveComment(ctx context.Context, c *model.Comment) (st
 
 	cs.comments[comment.ID] = comment
 
-	return comment.ID, nil
+	return comment.ID, comment.CreatedAt, nil
 }
 
 func (cs *CommentStorage) GetComments(ctx context.Context, first *int32, after *string, postID string) (*[]model.Comment, bool, string, error) {
@@ -101,4 +101,21 @@ func (cs *CommentStorage) GetComments(ctx context.Context, first *int32, after *
 	hasNextPage := endIndex < len(comments)
 
 	return &pageComments, hasNextPage, endCursor, nil
+}
+
+func (cs *CommentStorage) IsCommentExist(ctx context.Context, commentID string, postID string) error {
+	const op = "storage.in-memory.IsCommentExist"
+
+	cs.mu.RLock()
+	defer cs.mu.RUnlock()
+
+	comment, ok := cs.comments[commentID]
+	if !ok {
+		return fmt.Errorf("%s: comment not found", op)
+	}
+	if comment.PostID != postID {
+		return fmt.Errorf("%s: this comment from another post", op)
+	}
+
+	return nil
 }

@@ -28,7 +28,7 @@ func (s *InMemStorage) NewPostStorage() *PostStorage {
 	return ps
 }
 
-func (ps *PostStorage) SavePost(ctx context.Context, p *model.Post) (string, error) {
+func (ps *PostStorage) SavePost(ctx context.Context, p *model.Post) (string, time.Time, error) {
 	const op = "storage.in-memory.SavePost"
 	_ = op
 
@@ -46,7 +46,7 @@ func (ps *PostStorage) SavePost(ctx context.Context, p *model.Post) (string, err
 
 	ps.posts[post.ID] = post
 
-	return post.ID, nil
+	return post.ID, post.CreatedAt, nil
 }
 
 func (ps *PostStorage) GetPost(ctx context.Context, id string) (*model.Post, error) {

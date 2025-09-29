@@ -68,15 +68,13 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateComment func(childComplexity int, parentID string, text string) int
+		CreateComment func(childComplexity int, parentID *string, postID string, content string) int
 		CreatePost    func(childComplexity int, title string, content string, commentsAllowed bool) int
 	}
 
 	PageInfo struct {
-		EndCursor       func(childComplexity int) int
-		HasNextPage     func(childComplexity int) int
-		HasPerviousPage func(childComplexity int) int
-		StartCursor     func(childComplexity int) int
+		EndCursor   func(childComplexity int) int
+		HasNextPage func(childComplexity int) int
 	}
 
 	Post struct {
@@ -89,18 +87,18 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Post  func(childComplexity int, id string, first *int32, after *string) int
-		Posts func(childComplexity int) int
+		GetAllPosts func(childComplexity int) int
+		GetPost     func(childComplexity int, id string, first *int32, after *string) int
 	}
 }
 
 type MutationResolver interface {
 	CreatePost(ctx context.Context, title string, content string, commentsAllowed bool) (*model.Post, error)
-	CreateComment(ctx context.Context, parentID string, text string) (*model.Comment, error)
+	CreateComment(ctx context.Context, parentID *string, postID string, content string) (*model.Comment, error)
 }
 type QueryResolver interface {
-	Posts(ctx context.Context) ([]*model.Post, error)
-	Post(ctx context.Context, id string, first *int32, after *string) (*model.Post, error)
+	GetAllPosts(ctx context.Context) ([]*model.Post, error)
+	GetPost(ctx context.Context, id string, first *int32, after *string) (*model.Post, error)
 }
 
 type executableSchema struct {
@@ -195,7 +193,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateComment(childComplexity, args["parentID"].(string), args["text"].(string)), true
+		return e.complexity.Mutation.CreateComment(childComplexity, args["parentID"].(*string), args["postID"].(string), args["content"].(string)), true
 	case "Mutation.createPost":
 		if e.complexity.Mutation.CreatePost == nil {
 			break
@@ -220,18 +218,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PageInfo.HasNextPage(childComplexity), true
-	case "PageInfo.hasPerviousPage":
-		if e.complexity.PageInfo.HasPerviousPage == nil {
-			break
-		}
-
-		return e.complexity.PageInfo.HasPerviousPage(childComplexity), true
-	case "PageInfo.startCursor":
-		if e.complexity.PageInfo.StartCursor == nil {
-			break
-		}
-
-		return e.complexity.PageInfo.StartCursor(childComplexity), true
 
 	case "Post.comments":
 		if e.complexity.Post.Comments == nil {
@@ -275,23 +261,23 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Post.Title(childComplexity), true
 
-	case "Query.post":
-		if e.complexity.Query.Post == nil {
+	case "Query.getAllPosts":
+		if e.complexity.Query.GetAllPosts == nil {
 			break
 		}
 
-		args, err := ec.field_Query_post_args(ctx, rawArgs)
+		return e.complexity.Query.GetAllPosts(childComplexity), true
+	case "Query.getPost":
+		if e.complexity.Query.GetPost == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getPost_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.Post(childComplexity, args["id"].(string), args["first"].(*int32), args["after"].(*string)), true
-	case "Query.posts":
-		if e.complexity.Query.Posts == nil {
-			break
-		}
-
-		return e.complexity.Query.Posts(childComplexity), true
+		return e.complexity.Query.GetPost(childComplexity, args["id"].(string), args["first"].(*int32), args["after"].(*string)), true
 
 	}
 	return 0, false
@@ -419,16 +405,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_createComment_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "parentID", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "parentID", ec.unmarshalOID2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
 	args["parentID"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "text", ec.unmarshalNString2string)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "postID", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
-	args["text"] = arg1
+	args["postID"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "content", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["content"] = arg2
 	return args, nil
 }
 
@@ -480,7 +471,7 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_post_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Query_getPost_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
@@ -786,14 +777,10 @@ func (ec *executionContext) fieldContext_CommentConnection_pageInfo(_ context.Co
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
 			case "endCursor":
 				return ec.fieldContext_PageInfo_endCursor(ctx, field)
 			case "hasNextPage":
 				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPerviousPage":
-				return ec.fieldContext_PageInfo_hasPerviousPage(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
 		},
@@ -934,7 +921,7 @@ func (ec *executionContext) _Mutation_createComment(ctx context.Context, field g
 		ec.fieldContext_Mutation_createComment,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateComment(ctx, fc.Args["parentID"].(string), fc.Args["text"].(string))
+			return ec.resolvers.Mutation().CreateComment(ctx, fc.Args["parentID"].(*string), fc.Args["postID"].(string), fc.Args["content"].(string))
 		},
 		nil,
 		ec.marshalNComment2ᚖclientᚑservicesᚋinternalᚋgraphᚋmodelᚐComment,
@@ -975,35 +962,6 @@ func (ec *executionContext) fieldContext_Mutation_createComment(ctx context.Cont
 	if fc.Args, err = ec.field_Mutation_createComment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_PageInfo_startCursor,
-		func(ctx context.Context) (any, error) {
-			return obj.StartCursor, nil
-		},
-		nil,
-		ec.marshalOID2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_PageInfo_startCursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PageInfo",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
 	}
 	return fc, nil
 }
@@ -1054,35 +1012,6 @@ func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field gra
 }
 
 func (ec *executionContext) fieldContext_PageInfo_hasNextPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PageInfo",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _PageInfo_hasPerviousPage(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_PageInfo_hasPerviousPage,
-		func(ctx context.Context) (any, error) {
-			return obj.HasPerviousPage, nil
-		},
-		nil,
-		ec.marshalOBoolean2ᚖbool,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_PageInfo_hasPerviousPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "PageInfo",
 		Field:      field,
@@ -1288,14 +1217,14 @@ func (ec *executionContext) fieldContext_Post_createdAt(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_getAllPosts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_posts,
+		ec.fieldContext_Query_getAllPosts,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Query().Posts(ctx)
+			return ec.resolvers.Query().GetAllPosts(ctx)
 		},
 		nil,
 		ec.marshalNPost2ᚕᚖclientᚑservicesᚋinternalᚋgraphᚋmodelᚐPostᚄ,
@@ -1304,7 +1233,7 @@ func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.Coll
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_posts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_getAllPosts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -1331,15 +1260,15 @@ func (ec *executionContext) fieldContext_Query_posts(_ context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_post(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_getPost(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_post,
+		ec.fieldContext_Query_getPost,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Post(ctx, fc.Args["id"].(string), fc.Args["first"].(*int32), fc.Args["after"].(*string))
+			return ec.resolvers.Query().GetPost(ctx, fc.Args["id"].(string), fc.Args["first"].(*int32), fc.Args["after"].(*string))
 		},
 		nil,
 		ec.marshalOPost2ᚖclientᚑservicesᚋinternalᚋgraphᚋmodelᚐPost,
@@ -1348,7 +1277,7 @@ func (ec *executionContext) _Query_post(ctx context.Context, field graphql.Colle
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_post(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_getPost(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -1379,7 +1308,7 @@ func (ec *executionContext) fieldContext_Query_post(ctx context.Context, field g
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_post_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_getPost_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3158,8 +3087,6 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("PageInfo")
-		case "startCursor":
-			out.Values[i] = ec._PageInfo_startCursor(ctx, field, obj)
 		case "endCursor":
 			out.Values[i] = ec._PageInfo_endCursor(ctx, field, obj)
 		case "hasNextPage":
@@ -3167,8 +3094,6 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "hasPerviousPage":
-			out.Values[i] = ec._PageInfo_hasPerviousPage(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3275,7 +3200,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "posts":
+		case "getAllPosts":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -3284,7 +3209,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_posts(ctx, field)
+				res = ec._Query_getAllPosts(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -3297,7 +3222,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "post":
+		case "getPost":
 			field := field
 
 			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
@@ -3306,7 +3231,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_post(ctx, field)
+				res = ec._Query_getPost(ctx, field)
 				return res
 			}
 

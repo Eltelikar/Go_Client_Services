@@ -15,11 +15,13 @@ type CommentService struct {
 	db *pg.DB
 }
 
+var ErrCommentNotFound = errors.New("comment not found")
+
 func NewCommentService(db *pg.DB) *CommentService {
 	return &CommentService{db: db}
 }
 
-func (cs *CommentService) SaveComment(ctx context.Context, c *model.Comment) (string, error) {
+func (cs *CommentService) SaveComment(ctx context.Context, c *model.Comment) (string, time.Time, error) {
 	const op = "services.comments.SaveComment"
 
 	comment := &model.Comment{
@@ -43,10 +45,10 @@ func (cs *CommentService) SaveComment(ctx context.Context, c *model.Comment) (st
 	err := retryFunc(ctx, cs.db, opr)
 
 	if err != nil {
-		return "", err
+		return "", time.Time{}, err
 	}
 
-	return comment.ID, nil
+	return comment.ID, comment.CreatedAt, nil
 }
 
 func (cs *CommentService) GetComments(ctx context.Context, first *int32, after *string, postID string) (*[]model.Comment, bool, string, error) {
@@ -104,4 +106,36 @@ func (cs *CommentService) GetComments(ctx context.Context, first *int32, after *
 
 	return &comments, hasNextPage, endCursor, nil
 
+}
+
+func (cs *CommentService) IsCommentExist(ctx context.Context, commentID string, postID string) error {
+	const op = "services.comments.IsCommentExist"
+
+	var comment model.Comment
+
+	opr := func(tx *pg.Tx) error {
+		err := tx.Model(comment).
+			Where("id = ?", commentID).
+			Select()
+
+		if err != nil {
+			if errors.Is(err, pg.ErrNoRows) {
+				return fmt.Errorf("%s: %w", op, ErrCommentNotFound)
+			}
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		if comment.PostID != postID {
+			return fmt.Errorf("%s: this comment from another post", op)
+		}
+
+		return nil
+	}
+
+	err := retryFunc(ctx, cs.db, opr)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
