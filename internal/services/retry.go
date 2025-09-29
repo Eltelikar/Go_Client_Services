@@ -14,11 +14,11 @@ const (
 	retryDelay = 2 * time.Second
 )
 
-func (ps *PostService) RetryFunc(ctx context.Context, op func(tx *pg.Tx) error) error {
+func retryFunc(ctx context.Context, db *pg.DB, op func(tx *pg.Tx) error) error {
 	var err error
 
 	for i := 0; i < maxRetries; i++ {
-		err = ps.db.RunInTransaction(ctx, op)
+		err = db.RunInTransaction(ctx, op)
 		if err == nil {
 			return nil
 		}

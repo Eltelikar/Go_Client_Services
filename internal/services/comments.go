@@ -3,8 +3,12 @@ package services
 import (
 	"client-services/internal/graph/model"
 	"context"
+	"errors"
+	"fmt"
+	"time"
 
 	"github.com/go-pg/pg/v10"
+	"github.com/google/uuid"
 )
 
 type CommentService struct {
@@ -15,6 +19,89 @@ func NewCommentService(db *pg.DB) *CommentService {
 	return &CommentService{db: db}
 }
 
-func (cs *CommentService) SaveComment(ctx context.Context, c *model.Comment) (string, error)
+func (cs *CommentService) SaveComment(ctx context.Context, c *model.Comment) (string, error) {
+	const op = "services.comments.SaveComment"
 
-func (cs *CommentService) GetComments(ctx context.Context, id string) (*model.Comment, error)
+	comment := &model.Comment{
+		ID:        uuid.New().String(),
+		PostID:    c.PostID,
+		Content:   c.Content,
+		CreatedAt: time.Now(),
+	}
+	if c.ParentID != nil {
+		comment.ParentID = c.ParentID
+	}
+
+	opr := func(tx *pg.Tx) error {
+		_, err := tx.Model(comment).Insert()
+		if err != nil {
+			return fmt.Errorf("%s: failed to insert post: %w", op, err)
+		}
+		return nil
+	}
+
+	err := retryFunc(ctx, cs.db, opr)
+
+	if err != nil {
+		return "", err
+	}
+
+	return comment.ID, nil
+}
+
+func (cs *CommentService) GetComments(ctx context.Context, first *int32, after *string, postID string) (*[]model.Comment, bool, string, error) {
+	const op = "services.comments.GetComments"
+	var comments []model.Comment
+
+	opr := func(tx *pg.Tx) error {
+		if first == nil {
+			return fmt.Errorf("%s: parameter `first` is missing", op)
+		} else if *first == 0 {
+			return nil
+		}
+		query := tx.Model(&comments).
+			Where("post_id = ?", postID).
+			Order("created_at").
+			Limit(int(*first) + 1) // собираем на 1 больше, чтобы узнать о наличии следующей "страницы"
+
+		if after != nil && *after != "" {
+			var afterCursor model.Comment
+			err := tx.Model(&afterCursor).
+				Where("id = ?", *after).
+				Select()
+
+			if err != nil {
+				if errors.Is(err, pg.ErrNoRows) {
+					return fmt.Errorf("%s: invalid cursor value: %w", op, err)
+				}
+				return err
+			}
+			query = query.Where("(created_at, id) > (?, ?)", afterCursor.CreatedAt, afterCursor.ID) // дополняем query возвратом после курсора
+		}
+
+		if err := query.Select(); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	err := retryFunc(ctx, cs.db, opr)
+	if err != nil {
+		return nil, false, "", err
+	}
+
+	hasNextPage := false
+	if len(comments) == int(*first)+1 {
+		hasNextPage = true
+		comments = comments[:len(comments)-1]
+	}
+
+	var endCursor string
+	if len(comments) > 0 {
+		endCursor = comments[len(comments)-1].ID
+	}
+
+	return &comments, hasNextPage, endCursor, nil
+
+}

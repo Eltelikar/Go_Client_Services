@@ -3,6 +3,8 @@ package in_memory
 import (
 	"client-services/internal/graph/model"
 	"context"
+	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -26,7 +28,7 @@ func (s *InMemStorage) NewCommentStorage() *CommentStorage {
 	return cs
 }
 
-func (cs *CommentStorage) SaveComment(c *model.Comment) string {
+func (cs *CommentStorage) SaveComment(ctx context.Context, c *model.Comment) (string, error) {
 	const op = "storage.in-memory.SaveComment"
 	_ = op
 
@@ -42,10 +44,10 @@ func (cs *CommentStorage) SaveComment(c *model.Comment) string {
 
 	cs.comments[comment.ID] = comment
 
-	return comment.ID
+	return comment.ID, nil
 }
 
-func (cs *CommentStorage) GetComments(ctx context.Context, first *int32, after *string, postID string) (*[]model.Comment, error) {
+func (cs *CommentStorage) GetComments(ctx context.Context, first *int32, after *string, postID string) (*[]model.Comment, bool, string, error) {
 	const op = "storage.in-memory.GetComment"
 
 	cs.mu.RLock()
@@ -53,8 +55,10 @@ func (cs *CommentStorage) GetComments(ctx context.Context, first *int32, after *
 
 	var comments []model.Comment
 
-	if *first == 0 {
-		return &comments, nil
+	if first == nil {
+		return nil, false, "", fmt.Errorf("%s: parameter `first` is missing", op)
+	} else if *first == 0 {
+		return &[]model.Comment{}, false, "", nil
 	}
 
 	for _, c := range cs.comments {
@@ -63,8 +67,38 @@ func (cs *CommentStorage) GetComments(ctx context.Context, first *int32, after *
 		}
 	}
 
-	//TODO: отсортировать по датам, но: (Комментарий - дочерние комментарии)
-	//TODO: учесть пагинацию комментариев.
+	sort.Slice(comments, func(i, j int) bool {
+		return comments[i].CreatedAt.Before(comments[j].CreatedAt)
+	})
 
-	return comment, nil
+	startIndex := 0
+	if after != nil && *after != "" {
+		isFound := false
+		for i, c := range comments {
+			if c.ID == *after {
+				startIndex = i + 1
+				isFound = true
+				break
+			}
+		}
+		if !isFound {
+			return nil, false, "", fmt.Errorf("%s: invalid cursor value", op)
+		}
+	}
+
+	endIndex := startIndex + int(*first)
+	if endIndex >= len(comments) {
+		endIndex = len(comments)
+	}
+
+	pageComments := comments[startIndex:endIndex]
+
+	var endCursor string
+	if len(pageComments) > 0 {
+		endCursor = pageComments[len(pageComments)-1].ID
+	}
+
+	hasNextPage := endIndex < len(comments)
+
+	return &pageComments, hasNextPage, endCursor, nil
 }

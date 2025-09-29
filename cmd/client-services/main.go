@@ -80,9 +80,9 @@ func initResolver(cfg *config.Config) (*graph.Resolver, error) {
 	case "in-memory":
 		storage := in_memory.NewStorage()
 		resolver = &graph.Resolver{
-			Storage: storage,
-			Post_:   storage.NewPostStorage(),
-			//Comment_: storage.NewCommentStorage(),
+			Storage:  storage,
+			Post_:    storage.NewPostStorage(),
+			Comment_: storage.NewCommentStorage(),
 		}
 	case "postgres":
 		storage, err := postgres.NewStorage(*cfg.StorageConnect)
@@ -90,11 +90,10 @@ func initResolver(cfg *config.Config) (*graph.Resolver, error) {
 			return nil, fmt.Errorf("failed to initialize postgres database")
 		}
 
-		//TODO: создание сервиса Comment
-
 		resolver = &graph.Resolver{
-			Storage: storage,
-			Post_:   services.NewPostService(&storage.DB),
+			Storage:  storage,
+			Post_:    services.NewPostService(&storage.DB),
+			Comment_: services.NewCommentService(&storage.DB),
 		}
 	default:
 		return nil, fmt.Errorf("unknown storage type")
@@ -108,10 +107,9 @@ func initRouter(log *slog.Logger) *chi.Mux {
 	slog.Info("starting router")
 	router := chi.NewRouter()
 
-	// подключаем middlewares
 	router.Use(middleware.RequestID)
 	router.Use(logger.New(log))
-	router.Use(middleware.Recoverer) // защита от паник
+	router.Use(middleware.Recoverer)
 
 	return router
 }

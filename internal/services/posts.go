@@ -39,7 +39,7 @@ func (ps *PostService) SavePost(ctx context.Context, p *model.Post) (string, err
 		return nil
 	}
 
-	err := ps.RetryFunc(ctx, opr)
+	err := retryFunc(ctx, ps.db, opr)
 
 	if err != nil {
 		return "", err
@@ -54,7 +54,9 @@ func (ps *PostService) GetPost(ctx context.Context, id string) (*model.Post, err
 	var post model.Post
 
 	opr := func(tx *pg.Tx) error {
-		err := tx.Model(&post).Where("id = ?", id).Select()
+		err := tx.Model(&post).
+			Where("id = ?", id).
+			Select()
 		if err != nil {
 			if errors.Is(err, pg.ErrNoRows) {
 				return fmt.Errorf("%s: %w", op, errors.New("post not found"))
@@ -64,7 +66,7 @@ func (ps *PostService) GetPost(ctx context.Context, id string) (*model.Post, err
 		return nil
 	}
 
-	err := ps.RetryFunc(ctx, opr)
+	err := retryFunc(ctx, ps.db, opr)
 
 	if err != nil {
 		return nil, err
@@ -88,7 +90,7 @@ func (ps *PostService) GetAllPosts(ctx context.Context) ([]model.Post, error) {
 		return nil
 	}
 
-	err := ps.RetryFunc(ctx, opr)
+	err := retryFunc(ctx, ps.db, opr)
 
 	if err != nil {
 		return nil, err
