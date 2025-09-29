@@ -36,7 +36,6 @@ const (
 )
 
 func main() {
-	// загружаем .env файл для параметров окружения
 	if err := godotenv.Load(pathDocker); err != nil {
 		slog.Error("failed to load .env file", slog.String("error", err.Error()))
 		os.Exit(1)

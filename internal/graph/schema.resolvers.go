@@ -34,6 +34,9 @@ func (r *mutationResolver) CreatePost(ctx context.Context, title string, content
 	post.ID = id
 	post.CreatedAt = time
 
+	r.Log.Info("post successfully saved",
+		slog.String("postID", id),
+	)
 	return post, nil
 }
 
@@ -41,8 +44,9 @@ func (r *mutationResolver) CreatePost(ctx context.Context, title string, content
 func (r *mutationResolver) CreateComment(ctx context.Context, parentID *string, postID string, content string) (*model.Comment, error) {
 	const op = "graph.schema.resolvers.CreateComment"
 	if len(content) > 2000 {
-		r.Log.Error("text must contains 2000 symb or less",
+		r.Log.Error("text must contains 2000 chars or less",
 			slog.String("op", op))
+		return nil, fmt.Errorf("%s: text must contains 2000 chars or less", op)
 	}
 
 	post, err := r.Post_.GetPost(ctx, postID)
@@ -57,7 +61,7 @@ func (r *mutationResolver) CreateComment(ctx context.Context, parentID *string, 
 			slog.String("op", op),
 			slog.String("error", err.Error()),
 		)
-		return nil, fmt.Errorf("%s: failet to get post for comment: %w", op, err)
+		return nil, fmt.Errorf("%s: failed to get post for comment: %w", op, err)
 	}
 
 	r.mu.Lock()
@@ -70,7 +74,32 @@ func (r *mutationResolver) CreateComment(ctx context.Context, parentID *string, 
 
 	insertParent := false
 	if parentID != nil {
-		//TODO: найти parrent-comment
+		err = r.Comment_.IsCommentExist(ctx, *parentID, postID)
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				r.Log.Info("parrent comment not found",
+					slog.String("op", op),
+					slog.String("commentID", *parentID),
+				)
+				return nil, fmt.Errorf("%s: parrent comment not found: %w", op, err)
+			}
+			if strings.Contains(err.Error(), "this comment from another post") {
+				r.Log.Info("parrent comment from another post",
+					slog.String("op", op),
+					slog.String("commentID", *parentID),
+					slog.String("parentPost", postID),
+				)
+				return nil, fmt.Errorf("%s: parrent comment from another post with id - %s: %w", op, postID, err)
+			}
+
+			r.Log.Info("failed to find parent comment",
+				slog.String("op", op),
+				slog.String("commentID", *parentID),
+				slog.String("error", err.Error()),
+			)
+			return nil, fmt.Errorf("%s: failed to find parent comment: %w", op, err)
+		}
+
 		insertParent = true
 	}
 
@@ -94,17 +123,105 @@ func (r *mutationResolver) CreateComment(ctx context.Context, parentID *string, 
 	comment.ID = id
 	comment.CreatedAt = time
 
+	r.Log.Info("comment successfully saved",
+		slog.String("commentID", id),
+		slog.String("postID", postID),
+	)
 	return comment, nil
 }
 
 // GetAllPosts is the resolver for the getAllPosts field.
 func (r *queryResolver) GetAllPosts(ctx context.Context) ([]*model.Post, error) {
-	panic(fmt.Errorf("not implemented: GetAllPosts - getAllPosts"))
+	const op = "graph.schema.resolvers.GetAllPosts"
+
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	posts, err := r.Post_.GetAllPosts(ctx)
+	if err != nil {
+		r.Log.Error("failed to get posts", slog.String("op", op), slog.String("error", err.Error()))
+		return nil, fmt.Errorf("%s: failed to get posts: %w", op, err)
+	}
+
+	var result []*model.Post
+	for i := range posts {
+		result = append(result, &posts[i])
+	}
+
+	return result, nil
 }
 
 // GetPost is the resolver for the getPost field.
 func (r *queryResolver) GetPost(ctx context.Context, id string, first *int32, after *string) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented: GetPost - getPost"))
+	const op = "graph.schema.resolvers.GetPost"
+
+	post, err := r.Post_.GetPost(ctx, id)
+	if err != nil {
+		r.Log.Error("failed to get post",
+			slog.String("op", op),
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("%s: failed to get post: %w", op, err)
+	}
+
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	err = r.Comment_.IsCommentExist(ctx, *after, id)
+	if err != nil {
+		r.Log.Info("failed to find cursor",
+			slog.String("op", op),
+			slog.String("cursor", *after),
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("%s: failed to find cursor: %w", op, err)
+	}
+
+	comments, hasNextPage, newCursor, err := r.Comment_.GetComments(ctx, first, after, id)
+	if err != nil {
+		r.Log.Error("failed to get comments",
+			slog.String("op", op),
+			slog.String("postID", id),
+			slog.String("after", *after),
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("%s: failed to get comments: %w", op, err)
+	}
+
+	pInfo := &model.PageInfo{
+		EndCursor:   &newCursor,
+		HasNextPage: hasNextPage,
+	}
+
+	var comEdges []*model.CommentEdge
+	for _, com := range *comments {
+		cursor := com.ID
+		node := &model.Comment{
+			ID:        com.ID,
+			PostID:    com.PostID,
+			ParentID:  com.ParentID,
+			Content:   com.Content,
+			CreatedAt: com.CreatedAt,
+		}
+		comEdges = append(comEdges,
+			&model.CommentEdge{
+				Cursor: cursor,
+				Node:   node,
+			})
+	}
+
+	comConnection := &model.CommentConnection{
+		Edges:    comEdges,
+		PageInfo: pInfo,
+	}
+
+	post.Comments = comConnection
+
+	r.Log.Info("post was get successfully",
+		slog.String("postID", id),
+	)
+
+	return post, nil
 }
 
 // Mutation returns MutationResolver implementation.
