@@ -123,6 +123,9 @@ func (r *mutationResolver) CreateComment(ctx context.Context, parentID *string, 
 	comment.ID = id
 	comment.CreatedAt = time
 
+	go func() {
+		r.CommentAdded <- &model.CommentNotify{PostID: postID, ID: comment.ID, Content: comment.Content}
+	}()
 	r.Log.Info("comment successfully saved",
 		slog.String("commentID", id),
 		slog.String("postID", postID),
@@ -228,11 +231,48 @@ func (r *queryResolver) GetPost(ctx context.Context, id string, first *int32, af
 	return post, nil
 }
 
+// CommentsUpdated is the resolver for the commentsUpdated field.
+func (r *subscriptionResolver) CommentsUpdated(ctx context.Context, postID string) (<-chan *model.CommentNotify, error) {
+	const op = "graph.schema.resolvers.CommentsUpdated"
+
+	r.Log.Info("%s: new subscription - %s", op, postID)
+
+	clientChannel := make(chan *model.CommentNotify, 1)
+	go func() {
+		defer close(clientChannel)
+		defer r.Log.Info("%s: subscription closed - %s", op, postID)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case notify := <-r.CommentAdded:
+				if notify.PostID == postID {
+					r.Log.Debug("%s: try to send notify: %s", op, postID)
+					select {
+					case clientChannel <- notify:
+						r.Log.Debug("%s: notify sended: %s", op, postID)
+					case <-ctx.Done():
+						return
+					}
+				} else {
+				}
+			}
+		}
+	}()
+
+	return clientChannel, nil
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// Subscription returns SubscriptionResolver implementation.
+func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }

@@ -3,6 +3,7 @@ package run
 import (
 	"client-services/internal/config"
 	"client-services/internal/graph"
+	"client-services/internal/graph/model"
 	uqmutex "client-services/internal/graph/unique-mutex"
 	"client-services/internal/server/middlewares/logger"
 	"client-services/internal/services"
@@ -116,11 +117,12 @@ func initResolver(cfg *config.Config) (*graph.Resolver, error) {
 	case "in-memory":
 		storage := in_memory.NewStorage()
 		resolver = &graph.Resolver{
-			Log:      slog.Default(),
-			Storage:  storage,
-			Post_:    storage.NewPostStorage(),
-			Comment_: storage.NewCommentStorage(),
-			UqMutex:  uqmutex.NewUqMutex(),
+			Log:          slog.Default(),
+			Storage:      storage,
+			Post_:        storage.NewPostStorage(),
+			Comment_:     storage.NewCommentStorage(),
+			UqMutex:      uqmutex.NewUqMutex(),
+			CommentAdded: make(chan *model.CommentNotify),
 		}
 	case "postgres":
 		storage, err := postgres.NewStorage(*cfg.StorageConnect)
@@ -129,11 +131,12 @@ func initResolver(cfg *config.Config) (*graph.Resolver, error) {
 		}
 
 		resolver = &graph.Resolver{
-			Log:      slog.Default(),
-			Storage:  storage,
-			Post_:    services.NewPostService(&storage.DB),
-			Comment_: services.NewCommentService(&storage.DB),
-			UqMutex:  uqmutex.NewUqMutex(),
+			Log:          slog.Default(),
+			Storage:      storage,
+			Post_:        services.NewPostService(&storage.DB),
+			Comment_:     services.NewCommentService(&storage.DB),
+			UqMutex:      uqmutex.NewUqMutex(),
+			CommentAdded: make(chan *model.CommentNotify),
 		}
 	default:
 		return nil, fmt.Errorf("unknown storage type")

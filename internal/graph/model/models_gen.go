@@ -25,6 +25,12 @@ type CommentEdge struct {
 	Node   *Comment `json:"node"`
 }
 
+type CommentNotify struct {
+	PostID  string `json:"postID"`
+	ID      string `json:"id"`
+	Content string `json:"content"`
+}
+
 type Mutation struct {
 }
 
@@ -43,4 +49,7 @@ type Post struct {
 }
 
 type Query struct {
+}
+
+type Subscription struct {
 }

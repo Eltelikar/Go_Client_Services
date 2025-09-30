@@ -33,6 +33,12 @@ type PageInfo {
   hasNextPage: Boolean!
 }
 
+type CommentNotify {
+  postID: ID!
+  id: ID!
+  content: ID!
+}
+
 type Query {
   getAllPosts: [Post!]!
   getPost(id: ID!, first: Int, after: String): Post
@@ -41,4 +47,8 @@ type Query {
 type Mutation {
   createPost(title: String!, content: String!, commentsAllowed: Boolean!): Post!
   createComment(parentID: ID, postID: ID! ,content: String!): Comment!
+}
+
+type Subscription {
+  commentsUpdated(postID: ID!): CommentNotify!
 }

@@ -18,6 +18,8 @@ type Resolver struct {
 	Post_    PostInterface
 	Comment_ CommentInterface
 
+	CommentAdded chan *model.CommentNotify
+
 	UqMutex *uqmutex.UqMutex
 }
 
