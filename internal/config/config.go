@@ -11,6 +11,7 @@ import (
 type Config struct {
 	Env            string          `yaml:"env" env:"ENV" env-default:"local" env-requered:"true"`
 	Storage        string          `yaml:"storage" env-default:"in-memory"`
+	QueryCache     int             `yaml:"query-cache" env-default:"100"`
 	StorageConnect *StorageConnect `yaml:"storage_connect"`
 	HTTPServer     *HTTPServer     `yaml:"http_server"`
 }

@@ -1,12 +1,13 @@
 env: "local"         #"local","debug","prod"#
 storage: "postgres" #"postgres","in-memory"#
+query_cache: "100"
 storage_connect:
   sql_driver: "postgres"
   sql_user: "postgres"
   sql_password: "postgres"
   sql_address: "localhost"
   sql_port: "5432"
-  sql_dbname: "client-service"
+  sql_dbname: "client-services"
   sql_sslmode: "disable"
 http_server:
   url: "localhost"
