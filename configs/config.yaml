@@ -5,7 +5,7 @@ storage_connect:
   sql_driver: "postgres"
   sql_user: "postgres"
   sql_password: "postgres"
-  sql_address: "localhost"
+  sql_address: "db"
   sql_port: "5432"
   sql_dbname: "client-services"
   sql_sslmode: "disable"

@@ -18,7 +18,7 @@ type Resolver struct {
 	Post_    PostInterface
 	Comment_ CommentInterface
 
-	mu *sync.RWMutex
+	Mu *sync.RWMutex
 }
 
 type StorageInterface interface {

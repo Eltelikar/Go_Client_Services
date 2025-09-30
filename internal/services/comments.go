@@ -111,7 +111,7 @@ func (cs *CommentService) GetComments(ctx context.Context, first *int32, after *
 func (cs *CommentService) IsCommentExist(ctx context.Context, commentID string, postID string) error {
 	const op = "services.comments.IsCommentExist"
 
-	var comment model.Comment
+	comment := &model.Comment{}
 
 	opr := func(tx *pg.Tx) error {
 		err := tx.Model(comment).

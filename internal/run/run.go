@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -52,7 +53,7 @@ func Run(cfg *config.Config, log *slog.Logger) {
 
 // TODO: вынести в отдельный пакет
 func startServer(cfg *config.HTTPServer, router *chi.Mux, log *slog.Logger) error {
-	address := fmt.Sprintf("%s:%s", cfg.URL, cfg.Port)
+	address := fmt.Sprintf(":%s", cfg.Port)
 	srv := &http.Server{
 		Addr:    address,
 		Handler: router,
@@ -76,15 +77,15 @@ func startServer(cfg *config.HTTPServer, router *chi.Mux, log *slog.Logger) erro
 	defer stop()
 
 	<-ctx.Done()
-	log.Info("shutting down server...")
+	slog.Info("shutting down server...")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Error("expected shutdown failed", slog.String("error", err.Error()))
+		slog.Error("expected shutdown failed", slog.String("error", err.Error()))
 		return err
 	} else {
-		log.Info("server stopped")
+		slog.Info("server stopped")
 	}
 	return nil
 }
@@ -115,9 +116,11 @@ func initResolver(cfg *config.Config) (*graph.Resolver, error) {
 	case "in-memory":
 		storage := in_memory.NewStorage()
 		resolver = &graph.Resolver{
+			Log:      slog.Default(),
 			Storage:  storage,
 			Post_:    storage.NewPostStorage(),
 			Comment_: storage.NewCommentStorage(),
+			Mu:       &sync.RWMutex{},
 		}
 	case "postgres":
 		storage, err := postgres.NewStorage(*cfg.StorageConnect)
@@ -126,9 +129,11 @@ func initResolver(cfg *config.Config) (*graph.Resolver, error) {
 		}
 
 		resolver = &graph.Resolver{
+			Log:      slog.Default(),
 			Storage:  storage,
 			Post_:    services.NewPostService(&storage.DB),
 			Comment_: services.NewCommentService(&storage.DB),
+			Mu:       &sync.RWMutex{},
 		}
 	default:
 		return nil, fmt.Errorf("unknown storage type")

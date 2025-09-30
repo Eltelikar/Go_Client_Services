@@ -64,8 +64,8 @@ func (r *mutationResolver) CreateComment(ctx context.Context, parentID *string, 
 		return nil, fmt.Errorf("%s: failed to get post for comment: %w", op, err)
 	}
 
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	r.Mu.Lock()
+	defer r.Mu.Unlock()
 	if !post.CommentsAllowed {
 		r.Log.Info("user trying to create comment to post that not allowed comments",
 			slog.String("op", op))
@@ -134,8 +134,8 @@ func (r *mutationResolver) CreateComment(ctx context.Context, parentID *string, 
 func (r *queryResolver) GetAllPosts(ctx context.Context) ([]*model.Post, error) {
 	const op = "graph.schema.resolvers.GetAllPosts"
 
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	r.Mu.RLock()
+	defer r.Mu.RUnlock()
 
 	posts, err := r.Post_.GetAllPosts(ctx)
 	if err != nil {
@@ -155,6 +155,9 @@ func (r *queryResolver) GetAllPosts(ctx context.Context) ([]*model.Post, error) 
 func (r *queryResolver) GetPost(ctx context.Context, id string, first *int32, after *string) (*model.Post, error) {
 	const op = "graph.schema.resolvers.GetPost"
 
+	if first == nil {
+		return nil, fmt.Errorf("%s: parameter `first` is missing", op)
+	}
 	post, err := r.Post_.GetPost(ctx, id)
 	if err != nil {
 		r.Log.Error("failed to get post",
@@ -164,17 +167,18 @@ func (r *queryResolver) GetPost(ctx context.Context, id string, first *int32, af
 		return nil, fmt.Errorf("%s: failed to get post: %w", op, err)
 	}
 
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	err = r.Comment_.IsCommentExist(ctx, *after, id)
-	if err != nil {
-		r.Log.Info("failed to find cursor",
-			slog.String("op", op),
-			slog.String("cursor", *after),
-			slog.String("error", err.Error()),
-		)
-		return nil, fmt.Errorf("%s: failed to find cursor: %w", op, err)
+	r.Mu.RLock()
+	defer r.Mu.RUnlock()
+	if after != nil {
+		err = r.Comment_.IsCommentExist(ctx, *after, id)
+		if err != nil {
+			r.Log.Info("failed to find cursor",
+				slog.String("op", op),
+				slog.String("cursor", *after),
+				slog.String("error", err.Error()),
+			)
+			return nil, fmt.Errorf("%s: failed to find cursor: %w", op, err)
+		}
 	}
 
 	comments, hasNextPage, newCursor, err := r.Comment_.GetComments(ctx, first, after, id)
@@ -182,7 +186,6 @@ func (r *queryResolver) GetPost(ctx context.Context, id string, first *int32, af
 		r.Log.Error("failed to get comments",
 			slog.String("op", op),
 			slog.String("postID", id),
-			slog.String("after", *after),
 			slog.String("error", err.Error()),
 		)
 		return nil, fmt.Errorf("%s: failed to get comments: %w", op, err)

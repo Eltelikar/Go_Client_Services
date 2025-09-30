@@ -40,6 +40,7 @@ func mayRetry(err error) bool {
 
 	errMsg := err.Error()
 	if strings.Contains(errMsg, "timeout") ||
+		strings.Contains(errMsg, "post not found") ||
 		strings.Contains(errMsg, "deadlock detected") ||
 		strings.Contains(errMsg, "canceling statement due to conflict") ||
 		strings.Contains(errMsg, "could not serialize access") {
