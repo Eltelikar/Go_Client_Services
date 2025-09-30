@@ -3,6 +3,7 @@ package run
 import (
 	"client-services/internal/config"
 	"client-services/internal/graph"
+	uqmutex "client-services/internal/graph/unique-mutex"
 	"client-services/internal/server/middlewares/logger"
 	"client-services/internal/services"
 	in_memory "client-services/internal/storage/in-memory"
@@ -13,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -120,7 +120,7 @@ func initResolver(cfg *config.Config) (*graph.Resolver, error) {
 			Storage:  storage,
 			Post_:    storage.NewPostStorage(),
 			Comment_: storage.NewCommentStorage(),
-			Mu:       &sync.RWMutex{},
+			UqMutex:  uqmutex.NewUqMutex(),
 		}
 	case "postgres":
 		storage, err := postgres.NewStorage(*cfg.StorageConnect)
@@ -133,7 +133,7 @@ func initResolver(cfg *config.Config) (*graph.Resolver, error) {
 			Storage:  storage,
 			Post_:    services.NewPostService(&storage.DB),
 			Comment_: services.NewCommentService(&storage.DB),
-			Mu:       &sync.RWMutex{},
+			UqMutex:  uqmutex.NewUqMutex(),
 		}
 	default:
 		return nil, fmt.Errorf("unknown storage type")

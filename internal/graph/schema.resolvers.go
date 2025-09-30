@@ -64,8 +64,9 @@ func (r *mutationResolver) CreateComment(ctx context.Context, parentID *string, 
 		return nil, fmt.Errorf("%s: failed to get post for comment: %w", op, err)
 	}
 
-	r.Mu.Lock()
-	defer r.Mu.Unlock()
+	m := r.UqMutex.GetMutex(postID)
+	m.RLock()
+	defer m.RUnlock()
 	if !post.CommentsAllowed {
 		r.Log.Info("user trying to create comment to post that not allowed comments",
 			slog.String("op", op))
@@ -133,9 +134,6 @@ func (r *mutationResolver) CreateComment(ctx context.Context, parentID *string, 
 func (r *queryResolver) GetAllPosts(ctx context.Context) ([]*model.Post, error) {
 	const op = "graph.schema.resolvers.GetAllPosts"
 
-	r.Mu.RLock()
-	defer r.Mu.RUnlock()
-
 	posts, err := r.Post_.GetAllPosts(ctx)
 	if err != nil {
 		r.Log.Error("failed to get posts", slog.String("op", op), slog.String("error", err.Error()))
@@ -169,8 +167,9 @@ func (r *queryResolver) GetPost(ctx context.Context, id string, first *int32, af
 		return nil, fmt.Errorf("%s: failed to get post: %w", op, err)
 	}
 
-	r.Mu.RLock()
-	defer r.Mu.RUnlock()
+	m := r.UqMutex.GetMutex(id)
+	m.RLock()
+	defer m.RUnlock()
 	if after != nil {
 		err = r.Comment_.IsCommentExist(ctx, *after, id)
 		if err != nil {

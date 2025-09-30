@@ -2,9 +2,9 @@ package graph
 
 import (
 	"client-services/internal/graph/model"
+	uqmutex "client-services/internal/graph/unique-mutex"
 	"context"
 	"log/slog"
-	"sync"
 	"time"
 )
 
@@ -18,7 +18,7 @@ type Resolver struct {
 	Post_    PostInterface
 	Comment_ CommentInterface
 
-	Mu *sync.RWMutex
+	UqMutex *uqmutex.UqMutex
 }
 
 type StorageInterface interface {
