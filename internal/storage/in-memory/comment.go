@@ -37,6 +37,7 @@ func (cs *CommentStorage) SaveComment(ctx context.Context, c *model.Comment) (st
 
 	comment := &model.Comment{
 		ID:        uuid.New().String(),
+		PostID:    c.PostID,
 		ParentID:  c.ParentID,
 		Content:   c.Content,
 		CreatedAt: time.Now(),
@@ -114,7 +115,7 @@ func (cs *CommentStorage) IsCommentExist(ctx context.Context, commentID string, 
 		return fmt.Errorf("%s: comment not found", op)
 	}
 	if comment.PostID != postID {
-		return fmt.Errorf("%s: this comment from another post", op)
+		return fmt.Errorf("%s: comment from post - %s", op, comment.PostID)
 	}
 
 	return nil

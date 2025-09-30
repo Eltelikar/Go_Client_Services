@@ -87,9 +87,8 @@ func (r *mutationResolver) CreateComment(ctx context.Context, parentID *string, 
 				r.Log.Info("parrent comment from another post",
 					slog.String("op", op),
 					slog.String("commentID", *parentID),
-					slog.String("parentPost", postID),
 				)
-				return nil, fmt.Errorf("%s: parrent comment from another post with id - %s: %w", op, postID, err)
+				return nil, fmt.Errorf("%s: parrent comment from another post: %w", op, err)
 			}
 
 			r.Log.Info("failed to find parent comment",
@@ -157,7 +156,10 @@ func (r *queryResolver) GetPost(ctx context.Context, id string, first *int32, af
 
 	if first == nil {
 		return nil, fmt.Errorf("%s: parameter `first` is missing", op)
+	} else if *first < 0 {
+		return nil, fmt.Errorf("%s: parameter `first` cannot be less than 0", op)
 	}
+
 	post, err := r.Post_.GetPost(ctx, id)
 	if err != nil {
 		r.Log.Error("failed to get post",

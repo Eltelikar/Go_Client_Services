@@ -126,7 +126,7 @@ func (cs *CommentService) IsCommentExist(ctx context.Context, commentID string, 
 		}
 
 		if comment.PostID != postID {
-			return fmt.Errorf("%s: this comment from another post", op)
+			return fmt.Errorf("%s: comment from post - %s", op, *comment.ParentID)
 		}
 
 		return nil
