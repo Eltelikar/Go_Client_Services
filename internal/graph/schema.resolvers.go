@@ -16,6 +16,15 @@ import (
 func (r *mutationResolver) CreatePost(ctx context.Context, title string, content string, commentsAllowed bool) (*model.Post, error) {
 	const op = "graph.schema.resolvers.CreatePost"
 
+	if strings.TrimSpace(title) == "" {
+		r.Log.Debug("user tries create post with empty title")
+		return nil, fmt.Errorf("title cannot be empty")
+	}
+	if strings.TrimSpace(content) == "" {
+		r.Log.Debug("user tries create post with empty content")
+		return nil, fmt.Errorf("content cannot be empty")
+	}
+
 	post := &model.Post{
 		Title:           title,
 		Content:         content,
@@ -44,9 +53,13 @@ func (r *mutationResolver) CreatePost(ctx context.Context, title string, content
 func (r *mutationResolver) CreateComment(ctx context.Context, parentID *string, postID string, content string) (*model.Comment, error) {
 	const op = "graph.schema.resolvers.CreateComment"
 	if len(content) > 2000 {
-		r.Log.Error("text must contains 2000 chars or less",
+		r.Log.Error("text must have 2000 chars or less",
 			slog.String("op", op))
-		return nil, fmt.Errorf("%s: text must contains 2000 chars or less", op)
+		return nil, fmt.Errorf("%s: text must have 2000 chars or less", op)
+	}
+
+	if strings.TrimSpace(content) == "" {
+		return nil, fmt.Errorf("content cannot be empty")
 	}
 
 	post, err := r.Post_.GetPost(ctx, postID)
@@ -147,7 +160,7 @@ func (r *queryResolver) GetAllPosts(ctx context.Context) ([]*model.Post, error) 
 	for i := range posts {
 		result = append(result, &posts[i])
 	}
-
+	r.Log.Info("posts was get successfully")
 	return result, nil
 }
 
@@ -158,7 +171,7 @@ func (r *queryResolver) GetPost(ctx context.Context, id string, first *int32, af
 	if first == nil {
 		return nil, fmt.Errorf("%s: parameter `first` is missing", op)
 	} else if *first < 0 {
-		return nil, fmt.Errorf("%s: parameter `first` cannot be less than 0", op)
+		return nil, fmt.Errorf("%s: `first` cannot be less than 0", op)
 	}
 
 	post, err := r.Post_.GetPost(ctx, id)
