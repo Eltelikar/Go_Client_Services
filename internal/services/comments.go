@@ -64,7 +64,7 @@ func (cs *CommentService) GetComments(ctx context.Context, first *int32, after *
 		query := tx.Model(&comments).
 			Where("post_id = ?", postID).
 			Order("created_at").
-			Limit(int(*first) + 1) // собираем на 1 больше, чтобы узнать о наличии следующей "страницы"
+			Limit(int(*first) + 1)
 
 		if after != nil && *after != "" {
 			var afterCursor model.Comment
@@ -78,7 +78,7 @@ func (cs *CommentService) GetComments(ctx context.Context, first *int32, after *
 				}
 				return err
 			}
-			query = query.Where("(created_at, id) > (?, ?)", afterCursor.CreatedAt, afterCursor.ID) // дополняем query возвратом после курсора
+			query = query.Where("(created_at, id) > (?, ?)", afterCursor.CreatedAt, afterCursor.ID)
 		}
 
 		if err := query.Select(); err != nil {

@@ -52,7 +52,6 @@ func Run(cfg *config.Config, log *slog.Logger) {
 	}
 }
 
-// TODO: вынести в отдельный пакет
 func startServer(cfg *config.HTTPServer, router *chi.Mux, log *slog.Logger) error {
 	address := fmt.Sprintf(":%s", cfg.Port)
 	srv := &http.Server{
@@ -109,7 +108,6 @@ func initGraphQL(queryCache int, resolver *graph.Resolver) *handler.Server {
 	return srv
 }
 
-// TODO: вынести в отдельный пакет
 func initResolver(cfg *config.Config) (*graph.Resolver, error) {
 	var resolver *graph.Resolver
 
@@ -146,7 +144,6 @@ func initResolver(cfg *config.Config) (*graph.Resolver, error) {
 	return resolver, nil
 }
 
-// TODO: вынести в отдельный пакет
 func initRouter(log *slog.Logger) *chi.Mux {
 	router := chi.NewRouter()
 
