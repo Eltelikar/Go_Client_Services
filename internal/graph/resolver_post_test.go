@@ -67,7 +67,7 @@ func TestResolverCreatePost_Failed(t *testing.T) {
 		Post_:   mockPost,
 	}
 
-	args := []struct {
+	tests := []struct {
 		tTitle   string
 		tContent string
 		tErr     string
@@ -78,9 +78,9 @@ func TestResolverCreatePost_Failed(t *testing.T) {
 	}
 
 	for i := 0; i < 3; i++ {
-		post, err := resolver.Mutation().CreatePost(context.Background(), args[i].tTitle, args[i].tContent, true)
+		post, err := resolver.Mutation().CreatePost(context.Background(), tests[i].tTitle, tests[i].tContent, true)
 
-		require.ErrorContains(t, err, args[i].tErr)
+		require.ErrorContains(t, err, tests[i].tErr)
 		require.Nil(t, post)
 	}
 }

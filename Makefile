@@ -1,7 +1,11 @@
 MAINFILE=./cmd/client-services/main.go
+SERVICE_NAME=app-builder
 
 all: build
 	docker-compose up
+
+test:
+	go test -count=5 ./internal/graph/
 
 build:
 	docker-compose build
